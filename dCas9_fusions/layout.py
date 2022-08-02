@@ -140,12 +140,19 @@ class Layout(knock_knock.layout.Layout):
 
         flip_target = ti.sequencing_direction == '-'
 
+        label_offsets = {
+            'SV40 NLS 1': 1,
+            'SV40 NLS 2': 2,
+            'reverse_primer': 1,
+        }
+
         diagram_kwargs = dict(
             draw_sequence=False,
             flip_target=flip_target,
             split_at_indels=False,
             features_to_show=ti.features_to_show,
             center_on_primers=True,
+            label_offsets=label_offsets,
         )
 
         for k, v in diagram_kwargs.items():

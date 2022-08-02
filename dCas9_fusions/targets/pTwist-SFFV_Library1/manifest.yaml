@@ -1,0 +1,18 @@
+target: pTwist_SFFV
+donor: XTEN16-2xNLS-dCas9-XTEN
+sources:
+    - ptwist-sffv
+    - xten16-2xnls-dcas9-xten80
+    - TwistLibrary1
+features_to_show:
+- - pTwist_SFFV
+  - forward_primer
+- - pTwist_SFFV
+  - reverse_primer
+- - XTEN16-2xNLS-dCas9-XTEN
+  - XTEN16
+- - XTEN16-2xNLS-dCas9-XTEN
+  - XTEN80
+- - XTEN16-2xNLS-dCas9-XTEN
+  - dCas9
+

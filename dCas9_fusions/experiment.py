@@ -1,23 +1,19 @@
+import logging
+import sys
+
 import numpy as np
 import pandas as pd
 
-from . import layout
 import hits.utilities
+
+import knock_knock.experiment
 import knock_knock.pacbio_experiment
+
+from . import layout
 
 memoized_property = hits.utilities.memoized_property
 
 class dCas9FusionExperiment(knock_knock.pacbio_experiment.PacbioExperiment):
-    def __init__(self, base_dir, group, name, **kwargs):
-        super().__init__(base_dir, group, name, **kwargs)
-
-        label_offsets = {
-            'SV40 NLS 1': 1,
-            'SV40 NLS 2': 2,
-            'reverse_primer': 1,
-        }
-        self.diagram_kwargs.update(label_offsets=label_offsets)
-
     @memoized_property
     def categorizer(self):
         return layout.Layout
@@ -57,3 +53,47 @@ class dCas9FusionExperiment(knock_knock.pacbio_experiment.PacbioExperiment):
         df['log10_fraction'] = np.log10(df['fraction_with_floor'])
 
         return df
+
+def get_all_experiments(base_dir):
+    exps = {}
+    batches = knock_knock.experiment.get_all_batches(base_dir)
+
+    for batch in batches:
+        sample_sheet = knock_knock.experiment.load_sample_sheet(base_dir, batch)
+
+        if sample_sheet is None:
+            print(f'Error: {batch} has no sample sheet')
+            continue
+
+        for name, description in sample_sheet.items():
+            if isinstance(description, str):
+                continue
+
+            exp = dCas9FusionExperiment(base_dir, batch, name, description=description)
+            exps[exp.batch, exp.sample_name] = exp
+
+    return exps
+
+def process_experiment_stage(base_dir,
+                             batch_name,
+                             sample_name,
+                             stage,
+                            ):
+    sample_sheet = knock_knock.experiment.load_sample_sheet(base_dir, batch_name)
+
+    if sample_sheet is None:
+        print(f'Error: {batch_name} not found in {base_dir}')
+        sys.exit(1)
+    elif sample_name not in sample_sheet:
+        print(f'Error: {sample_name} not found in {batch_name} sample sheet')
+        sys.exit(1)
+    else:
+        description = sample_sheet[sample_name]
+
+    exp = dCas9FusionExperiment(base_dir, batch_name, sample_name, description=description)
+
+    logging.info(f'Starting {batch_name}: {sample_name} {stage}')
+
+    exp.process(stage)
+
+    logging.info(f'Finished {batch_name}: {sample_name} {stage}')

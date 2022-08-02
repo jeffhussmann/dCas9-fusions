@@ -1,6 +1,11 @@
+#!/usr/bin/env python3
+
 import argparse
 import logging
+import os
+import shutil
 import sys
+
 from pathlib import Path
 
 import tqdm
@@ -8,7 +13,22 @@ import tqdm
 import knock_knock.experiment
 import knock_knock.parallel
 
+import dCas9_fusions
 import dCas9_fusions.experiment
+
+def setup(args):
+    package_dir = Path(os.path.realpath(dCas9_fusions.__file__)).parent
+
+    src = package_dir / 'targets'
+    dest = args.base_dir / 'targets'
+
+    if dest.exists():
+        print(f'Can\'t install to {args.base_dir}, {dest} already exists')
+        sys.exit(1)
+
+    shutil.copytree(str(src), str(dest))
+
+    logging.info(f'Library annotations installed in {args.base_dir}')
 
 def parallel(args):
     logger = logging.getLogger(__name__)
@@ -22,20 +42,18 @@ def parallel(args):
     stream_handler.setLevel(logging.DEBUG)
     logger.addHandler(stream_handler)
 
-    if args.group:
-        args.conditions['batch'] = args.group
-
-    exps = knock_knock.experiment.get_all_experiments(args.project_directory, args.conditions)
+    exps = dCas9_fusions.experiment.get_all_experiments(args.base_dir)
 
     def process_stage(stage):
         with knock_knock.parallel.PoolWithLoggerThread(args.max_procs, logger) as process_pool:
             arg_tuples = []
 
             for _, exp in exps.items():
-                arg_tuple = (exp.base_dir, exp.batch, exp.sample_name, stage, args.progress, True)
-                arg_tuples.append(arg_tuple)
+                if not args.batch or exp.batch == args.batch:
+                    arg_tuple = (exp.base_dir, exp.batch, exp.sample_name, stage)
+                    arg_tuples.append(arg_tuple)
 
-            process_pool.starmap(knock_knock.experiment.process_experiment_stage, arg_tuples)
+            process_pool.starmap(dCas9_fusions.experiment.process_experiment_stage, arg_tuples)
 
     stages = args.stages.split(',')
     for stage in stages:
@@ -44,18 +62,12 @@ def parallel(args):
 def process(args):
     stages = args.stages.split(',')
 
-    sample_sheet = knock_knock.experiment.load_sample_sheet(args.base_dir, args.batch_name)
-    description = sample_sheet[args.sample_name]
-
-    exp = dCas9_fusions.experiment.dCas9FusionExperiment(args.base_dir,
-                                                         args.batch_name,
-                                                         args.sample_name,
-                                                         description=description,
-                                                        )
-
     for stage in stages:
-        logging.info(f'Starting {exp} {stage}')
-        exp.process(stage)
+        dCas9_fusions.experiment.process_experiment_stage(args.base_dir,
+                                                          args.batch_name,
+                                                          args.sample_name,
+                                                          stage,
+                                                         )
 
 if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s: %(message)s',
@@ -70,6 +82,10 @@ if __name__ == '__main__':
 
     def add_project_directory_arg(parser):
         parser.add_argument('base_dir', type=Path, help='the base directory to store input data, reference annotations, and analysis output for a project')
+
+    parser_setup = subparsers.add_parser('setup', help='set up annotations')
+    add_project_directory_arg(parser_setup)
+    parser_setup.set_defaults(func=setup)
 
     parser_process = subparsers.add_parser('process', help='process a single sample')
     add_project_directory_arg(parser_process)
