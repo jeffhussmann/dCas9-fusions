@@ -91,7 +91,6 @@ if __name__ == '__main__':
     add_project_directory_arg(parser_process)
     parser_process.add_argument('batch_name', help='batch name')
     parser_process.add_argument('sample_name', help='sample name')
-    parser_process.add_argument('--progress', const=tqdm.tqdm, action='store_const', help='show progress bars')
     parser_process.add_argument('--stages', default='preprocess,align,categorize,visualize')
     parser_process.set_defaults(func=process)
 
@@ -99,8 +98,7 @@ if __name__ == '__main__':
     add_project_directory_arg(parser_parallel)
     parser_parallel.add_argument('max_procs', type=int, help='maximum number of samples to process at once')
     parser_parallel.add_argument('--batch', help='if specified, the single batch name to process; if not specified, all groups will be processed')
-    parser_parallel.add_argument('--stages', default='preprocess,align,categorize,visualize')
-    parser_parallel.add_argument('--progress', const=tqdm.tqdm, action='store_const', help='show progress bars')
+    parser_parallel.add_argument('--stages', default='align,categorize')
     parser_parallel.set_defaults(func=parallel)
 
     args = parser.parse_args()

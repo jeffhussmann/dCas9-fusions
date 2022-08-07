@@ -19,30 +19,36 @@ class dCas9FusionExperiment(knock_knock.pacbio_experiment.PacbioExperiment):
         return layout.Layout
 
     @memoized_property
-    def domain_counts(self):
+    def expected_lengths(self):
         refs = self.target_info.reference_sequences
 
         N_domains = [name for name in refs if name.startswith('N')]
         C_domains = [name for name in refs if name.startswith('C')]
 
+        dCas9_length = len(refs['XTEN16-2xNLS-dCas9-XTEN'])
+
+        lengths = {}
+        for N in N_domains:
+            for C in C_domains:
+                lengths[N, C] = len(refs[N]) + len(refs[C]) + dCas9_length
+
+        return pd.Series(lengths)
+
+    @memoized_property
+    def domain_counts(self):
         self.outcome_counts.sort_index(inplace=True)
         clean_counts = self.outcome_counts.loc['contains dCas9', 'clean domains']
 
         domain_counts = {}
 
-        for N in N_domains:
-            for C in C_domains:
-                domain_counts[N, C] = clean_counts.get(f'{N},{C}', 0)
+        for N, C in self.expected_lengths.index.values:
+            domain_counts[N, C] = clean_counts.get(f'{N},{C}', 0)
 
         domain_counts = pd.Series(domain_counts)
 
-        dCas9_length = len(refs['XTEN16-2xNLS-dCas9-XTEN'])
-
-        lengths = {(N, C): len(refs[N]) + len(refs[C]) + dCas9_length for N, C in domain_counts.index}
-
         df = pd.DataFrame({
             'count': domain_counts,
-            'length': lengths,
+            'length': self.expected_lengths,
         })
 
         df['count_with_pseudocount'] = df['count'] + 0.1
@@ -53,6 +59,11 @@ class dCas9FusionExperiment(knock_knock.pacbio_experiment.PacbioExperiment):
         df['log10_fraction'] = np.log10(df['fraction_with_floor'])
 
         return df
+
+    @memoized_property
+    def max_relevant_length(self):
+        thousands, remainder = divmod(max(self.expected_lengths) * 2, 1000)
+        return (thousands + 1) * 1000
 
 def get_all_experiments(base_dir):
     exps = {}
