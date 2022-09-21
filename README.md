@@ -1,15 +1,17 @@
 Installation
 ------------
 
-To install:
-
+First, clone up-to-date versions of this repo and of two dependencies from github:
 
 ```
+git clone git@github.com:jeffhussmann/hits.git
+git clone git@github.com:jeffhussmann/knock-knock.git
 git clone git@github.com:jeffhussmann/dCas9-fusions.git
 ```
-(Since this is a private repo, you will probably need to set up an SSH key to authenticate with your github account - https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account)
 
-Then, from from the directory that you cloned into:
+(Since dCas9-fusions is a private repo, you will probably need to set up an SSH key to authenticate with your github account - https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account)
+
+Then, in the order `hits`, then `knock-knock`, then `dCas9-fusions`, go into each cloned directory and install the corresponding python using pip by running this command:
 
 ```
 pip install -e ./
